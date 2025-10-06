@@ -5,19 +5,30 @@
     <meta charset="UTF-8">
     <title>Socratic Tutor Bot</title>
     <style>
-        /* Basic styling for the chat */
-        body { font-family: sans-serif; }
-        #chat-window { height: 400px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; }
+        body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+        #chat-window { height: 500px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
         .user-message { text-align: right; color: blue; }
         .bot-message { text-align: left; color: green; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        #message-input { flex-grow: 1; }
+        #doc-selector { padding: 5px; }
     </style>
 </head>
 <body>
-    <h1>Socratic Tutor Bot</h1>
-    <p style="text-align: center;"><a href="/upload">Go to Instructor Upload Portal</a></p>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Socratic Tutor Bot</h1>
+        <a href="/upload">Instructor Upload Portal</a>
+    </div>
+
+    <div class="controls">
+        <label for="doc-selector">Select a topic to discuss:</label>
+        <select id="doc-selector"></select>
+    </div>
+    
     <div id="chat-window"></div>
-    <form id="chat-form">
-        <input type="text" id="message-input" autocomplete="off" placeholder="Ask a question..." style="width: 80%;">
+    
+    <form id="chat-form" class="controls">
+        <input type="text" id="message-input" autocomplete="off" placeholder="Ask a question..." required>
         <button type="submit">Send</button>
     </form>
 
@@ -25,29 +36,57 @@
         const chatWindow = document.getElementById('chat-window');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
+        const docSelector = document.getElementById('doc-selector');
         let chatHistory = [];
+
+        // --- NEW: Load documents when the page loads ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/get_documents');
+                const documents = await response.json();
+                if (documents.length === 0) {
+                    const option = new Option("No documents uploaded yet. Go to the upload portal.", "");
+                    option.disabled = true;
+                    docSelector.add(option);
+                } else {
+                    documents.forEach(doc => {
+                        docSelector.add(new Option(doc, doc));
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to load documents:", error);
+                docSelector.add(new Option("Error loading documents", ""));
+            }
+        });
 
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const userMessage = messageInput.value.trim();
-            if (!userMessage) return;
+            const selectedDoc = docSelector.value; // Get the selected document
 
-            // Display user message
+            if (!userMessage || !selectedDoc) {
+                alert("Please select a document and type a message.");
+                return;
+            }
+
             appendMessage(userMessage, 'user-message');
             chatHistory.push({ user: userMessage });
             messageInput.value = '';
 
-            // Send to backend and get bot response
+            // --- UPDATED: Send the selected document to the backend ---
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage, history: chatHistory })
+                body: JSON.stringify({ 
+                    message: userMessage, 
+                    history: chatHistory,
+                    document_source: selectedDoc // Include the document source
+                })
             });
 
             const data = await response.json();
             const botMessage = data.response;
 
-            // Display bot message
             appendMessage(botMessage, 'bot-message');
             chatHistory.push({ bot: botMessage });
         });
@@ -55,7 +94,7 @@
         function appendMessage(message, className) {
             const p = document.createElement('p');
             p.className = className;
-            p.textContent = message;    
+            p.textContent = message;
             chatWindow.appendChild(p);
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }

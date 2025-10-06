@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 # --- Local Application Imports ---
 from bot_logic import SocraticTutor
 from ingestion import process_and_store_pdf
+import chromadb
 
 # ==============================================================================
 # 2. INITIAL SETUP AND CONFIGURATION
@@ -47,23 +48,45 @@ tutor = SocraticTutor(api_key=API_KEY)
 # 4. FLASK ROUTES
 # ==============================================================================
 
+@app.route('/get_documents', methods=['GET'])
+def get_documents():
+    """Lists all unique document sources from the database."""
+    try:
+        client = chromadb.PersistentClient(path="db")
+        collection = client.get_or_create_collection(name="socratic_collection")
+        
+        # Get all items and extract the 'source' from metadata
+        items = collection.get()
+        if not items or not items['metadatas']:
+            return jsonify([])
+            
+        sources = sorted(list(set(item['source'] for item in items['metadatas'])))
+        return jsonify(sources)
+    except Exception as e:
+        print(f"Error getting documents: {e}")
+        return jsonify({"error": "Could not retrieve document list"}), 500
+
+
 @app.route('/')
 def index():
     """Serves the main HTML chat page."""
     return render_template('index.html')
 
+# @app.route('/chat', methods=['POST'])
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Handles the chat request from the user, gets a response, and logs it."""
+    """Handles the chat request, including the selected document."""
     data = request.json
     user_message = data.get('message')
     chat_history = data.get('history', [])
+    document_source = data.get('document_source') # Get the selected document
 
-    if not user_message:
-        return jsonify({"error": "No message provided"}), 400
+    if not user_message or not document_source:
+        return jsonify({"error": "Message or document source missing"}), 400
 
-    # Get the bot's response from the SocraticTutor logic
-    bot_response = tutor.generate_response(user_message, chat_history)
+    # Pass the selected document to the bot logic
+    bot_response = tutor.generate_response(user_message, chat_history, document_source)
+
 
     # --- ADDED: Logging Logic ---
     # Append the conversation turn to a text file for instructor review
