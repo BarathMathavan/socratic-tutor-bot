@@ -1,0 +1,16 @@
+# Environment variables
+.env
+
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Vector database folder
+db/
+
+# Chat Log File
+chat_log.txt

@@ -1,0 +1,64 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Socratic Tutor Bot</title>
+    <style>
+        /* Basic styling for the chat */
+        body { font-family: sans-serif; }
+        #chat-window { height: 400px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; }
+        .user-message { text-align: right; color: blue; }
+        .bot-message { text-align: left; color: green; }
+    </style>
+</head>
+<body>
+    <h1>Socratic Tutor Bot</h1>
+    <p style="text-align: center;"><a href="/upload">Go to Instructor Upload Portal</a></p>
+    <div id="chat-window"></div>
+    <form id="chat-form">
+        <input type="text" id="message-input" autocomplete="off" placeholder="Ask a question..." style="width: 80%;">
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        let chatHistory = [];
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userMessage = messageInput.value.trim();
+            if (!userMessage) return;
+
+            // Display user message
+            appendMessage(userMessage, 'user-message');
+            chatHistory.push({ user: userMessage });
+            messageInput.value = '';
+
+            // Send to backend and get bot response
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage, history: chatHistory })
+            });
+
+            const data = await response.json();
+            const botMessage = data.response;
+
+            // Display bot message
+            appendMessage(botMessage, 'bot-message');
+            chatHistory.push({ bot: botMessage });
+        });
+
+        function appendMessage(message, className) {
+            const p = document.createElement('p');
+            p.className = className;
+            p.textContent = message;    
+            chatWindow.appendChild(p);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+    </script>
+</body>
+</html>

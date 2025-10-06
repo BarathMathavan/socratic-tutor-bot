@@ -1,0 +1,9 @@
+flask
+flask-cors
+werkzeug
+PyMuPDF
+langchain
+sentence-transformers
+chromadb
+google-generativeai
+python-dotenv
