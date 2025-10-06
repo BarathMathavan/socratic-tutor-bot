@@ -7,9 +7,6 @@
     <style>
         body { font-family: sans-serif; padding: 20px; }
         .container { max-width: 500px; margin: auto; border: 1px solid #ccc; padding: 20px; border-radius: 5px; }
-        .message { padding: 10px; margin-top: 10px; border-radius: 5px; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
@@ -17,18 +14,11 @@
         <h1>Instructor Upload Portal</h1>
         <p>Upload a PDF to add it to the Socratic Tutor's knowledge base.</p>
         
-        <!-- Display flash messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="message {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <form method="post" enctype="multipart/form-data">
+        <!-- The form now needs to be a standard HTML form that posts to the /upload endpoint -->
+        <form action="/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept=".pdf" required>
-            <button type="submit">Upload and Process</button>
+            <br><br>
+            <button type="submit">Upload and Process PDF</button>
         </form>
         <hr>
         <a href="/">Go to the Socratic Tutor Chat</a>
